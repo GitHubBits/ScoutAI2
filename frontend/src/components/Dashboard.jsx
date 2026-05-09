@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import Header from './Header.jsx';
 import InputPanel from './InputPanel.jsx';
 import ResultsCard from './ResultsCard.jsx';
+import { supabase } from '../lib/supabase.js';
+import { useAuth } from '../context/AuthContext.jsx';
 import HistoryPanel from './HistoryPanel.jsx';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -15,18 +17,21 @@ export default function Dashboard() {
   const [history, setHistory] = useState([]);
   const [activeHistoryId, setActiveHistoryId] = useState(null);
 
-  // Load history from localStorage
-  const loadHistory = useCallback(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem('scoutai-history') || '[]');
-      setHistory(saved);
-    } catch { setHistory([]); }
-  }, []);
+  const { user } = useAuth();
 
-  const saveHistory = (items) => {
-    localStorage.setItem('scoutai-history', JSON.stringify(items));
-    setHistory(items);
-  };
+  // Load history from Supabase
+  const loadHistory = useCallback(async () => {
+    if (!user) return;
+    const { data, error } = await supabase
+      .from('analyses')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+    
+    if (!error && data) {
+      setHistory(data);
+    }
+  }, [user]);
 
   useEffect(() => { loadHistory(); }, [loadHistory]);
 
@@ -51,19 +56,30 @@ export default function Dashboard() {
       setScrapedData(data.scrapedData);
       setMeta({ businessName, industry });
 
-      // Save to localStorage
+      // Save to Supabase
       const newItem = {
-        id: crypto.randomUUID(),
-        created_at: new Date().toISOString(),
+        user_id: user.id,
         business_name: businessName,
         industry,
         competitor_urls: competitorUrls,
         scraped_data: data.scrapedData,
         ai_analysis: data.analysis,
         summary: data.analysis?.executiveSummary || 'Analysis complete',
+        status: 'completed'
       };
-      const updated = [newItem, ...history];
-      saveHistory(updated);
+      
+      const { data: insertedData, error: dbError } = await supabase
+        .from('analyses')
+        .insert([newItem])
+        .select()
+        .single();
+
+      if (dbError) {
+        console.error('Supabase Error:', dbError);
+        setError(`Warning: Analysis completed, but failed to save to history (${dbError.message || 'Check database tables'}).`);
+      } else if (insertedData) {
+        setHistory((prev) => [insertedData, ...prev]);
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -81,10 +97,12 @@ export default function Dashboard() {
   }
 
   // Delete history item
-  function handleDeleteHistory(id) {
-    const updated = history.filter((h) => h.id !== id);
-    saveHistory(updated);
-    if (activeHistoryId === id) { setAnalysis(null); setActiveHistoryId(null); }
+  async function handleDeleteHistory(id) {
+    const { error } = await supabase.from('analyses').delete().eq('id', id);
+    if (!error) {
+      setHistory((prev) => prev.filter((h) => h.id !== id));
+      if (activeHistoryId === id) { setAnalysis(null); setActiveHistoryId(null); }
+    }
   }
 
   return (
