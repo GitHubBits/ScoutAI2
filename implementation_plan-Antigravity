@@ -1,0 +1,93 @@
+# ScoutAI - Competitive Intelligence Tool
+
+## Implementation Plan
+
+### Overview
+A web application that allows users to input multiple competitor website URLs, scrapes their content using Firecrawl, analyzes competitive positioning using OpenAI, and stores results in Supabase for future reference.
+
+### Architecture
+
+```mermaid
+graph LR
+    A[React Frontend<br/>Vite + Dark/Light Mode] --> B[Express.js Backend<br/>API Server]
+    B --> C[Firecrawl API<br/>Web Scraping]
+    B --> D[OpenAI API<br/>AI Analysis]
+    B --> E[Supabase<br/>Database & Storage]
+    A --> E
+```
+
+### Tech Stack
+| Component | Technology | Purpose |
+|-----------|-----------|---------|
+| Frontend | Vite + React | Bolt-style rapid UI development |
+| Styling | Vanilla CSS | Dark/light mode, premium design |
+| Backend API | Express.js | API orchestration layer |
+| Database | Supabase (PostgreSQL) | Store analyses & history |
+| Scraping | Firecrawl API | Extract website content |
+| AI Analysis | OpenAI GPT-4 | Competitive intelligence |
+
+### UI Layout (Three Panels)
+
+```
+┌─────────────────────────────────────────────────────┐
+│  🔍 ScoutAI - Competitive Intelligence              │ [🌙/☀️]
+├──────────────┬──────────────────────┬────────────────┤
+│              │                      │                │
+│  INPUT       │  RESULTS CARD        │  HISTORY       │
+│  PANEL       │                      │  PANEL         │
+│              │  • Market Gaps       │                │
+│  [URL 1]     │  • Competitor Matrix │  [Analysis 1]  │
+│  [URL 2]     │  • Opportunities     │  [Analysis 2]  │
+│  [+ Add URL] │  • Recommendations   │  [Analysis 3]  │
+│              │                      │                │
+│  [Your Biz]  │                      │                │
+│  [Industry]  │                      │                │
+│              │                      │                │
+│  [Analyze]   │                      │                │
+│              │                      │                │
+└──────────────┴──────────────────────┴────────────────┘
+```
+
+### Database Schema (Supabase)
+
+**Table: `analyses`**
+| Column | Type | Description |
+|--------|------|-------------|
+| id | uuid | Primary key |
+| created_at | timestamp | Auto-generated |
+| business_name | text | User's business name |
+| industry | text | Industry/niche |
+| competitor_urls | jsonb | Array of competitor URLs |
+| scraped_data | jsonb | Raw scraped content |
+| ai_analysis | jsonb | OpenAI analysis results |
+| summary | text | Brief summary for history |
+
+### Features
+1. **Input Panel**: Add multiple competitor URLs, business name, industry
+2. **Results Card**: AI-generated competitive analysis with actionable insights
+3. **History Panel**: Previously saved analyses with quick-view
+4. **Dark/Light Mode**: Toggle with system preference detection
+5. **AI Analysis**: Market gaps, competitor strengths/weaknesses, opportunities
+
+### Build Phases
+
+#### Phase 1: Project Setup
+- Initialize Vite + React project
+- Set up Supabase client
+- Create database table
+
+#### Phase 2: Backend API
+- Express.js server with Firecrawl + OpenAI integration
+- `/api/scrape` endpoint
+- `/api/analyze` endpoint
+
+#### Phase 3: Frontend UI
+- Three-panel layout with dark/light mode
+- Input form with dynamic URL fields
+- Results display with formatted AI analysis
+- History sidebar with saved analyses
+
+#### Phase 4: Integration & Polish
+- Connect all components
+- Add loading states & animations
+- Error handling & validation
